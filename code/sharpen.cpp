@@ -42,7 +42,14 @@ int main(int argc, char **argv) {
                            -1,  5, -1,
                             0, -1,  0  };
 
-    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list, 1 / 1.0);
+    double dilate_list[] = {  1, 0, 0, 0, 1,
+                              0, 1, 0, 1, 0,
+                              0, 0, 1, 0, 0,
+                              0, 1, 0, 1, 0,
+                              1, 0, 0, 0, 1  };
+
+    mask   blur(3, sizeof(blur_list) / sizeof(double), blur_list, 1 / 1.0);
+    mask dilate(5, sizeof(dilate_list) / sizeof(double), dilate_list, 1 / 1.0);
 
     int COUNTS = 1;
 
@@ -51,7 +58,8 @@ int main(int argc, char **argv) {
     unsharp_img.commitImageGrid(&unsharp_image.data[0]);
 
     imageGrid sobel_img(sobel_image.rows, sobel_image.step / 3, &sobel_image.data[0]);
-    sobel_img.multiply(blur); for(int i = 0; i++ < COUNTS;) sobel_img.sobel();
+    //sobel_img.multiply(blur);
+    sobel_img.sobel();
     sobel_img.commitImageGrid(&sobel_image.data[0]);
 
     int num_it = 3;
@@ -62,7 +70,8 @@ int main(int argc, char **argv) {
     unHSI_img.commitImageGrid(&log9_image.data[0]);
 
 	imageGrid HSI_img(log11_image.rows, log11_image.step / 3, &log11_image.data[0]);
-    HSI_img.lux();
+    HSI_img.toBinary();
+    HSI_img.dilateBinary(dilate);
     HSI_img.commitImageGrid(&log11_image.data[0]);
 
     unsigned state = 0;
@@ -105,8 +114,8 @@ int main(int argc, char **argv) {
                 	break;
                 	case 4:
                 		image = &log11_image;
-                		state++;
-                		cout << "mixed image.\n";
+                		state--;
+                		cout << "dilated image.\n";
                 	break;
                 	default:
                 	break;

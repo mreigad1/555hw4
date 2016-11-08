@@ -66,7 +66,7 @@ pixel pixel::toGrey() {
 
 pixel pixel::toBinary() {
 	pixel p = this->toGrey();
-	pixelPrecision binVal = ((p.rgb[RGB_R] > (MAX_COLOR / 2)) ? MAX_COLOR : 0 );
+	pixelPrecision binVal = ((p.rgb[RGB_R] > (MAX_COLOR * (5.0 / 6.0))) ? MAX_COLOR : 0 );
 	pixel retVal(binVal, binVal, binVal);
 	return retVal;
 }
@@ -144,6 +144,33 @@ pixel pixel::HSI_toRGB() {
 	ret.rgb[RGB_G] = G;
 	ret.rgb[RGB_B] = B;
 	return ret;
+}
+
+pixelPrecision pixel::getAvgIntensity() {
+	return toGrey().rgb[RGB_R];
+}
+
+bool pixel::operator<=(pixel& m) {
+	return getAvgIntensity() <= m.getAvgIntensity();
+}
+
+bool pixel::operator<(pixel& m) {
+	return getAvgIntensity() < m.getAvgIntensity();
+}
+
+bool pixel::operator>=(pixel& m) {
+	return getAvgIntensity() >= m.getAvgIntensity();
+}
+
+bool pixel::operator>(pixel& m) {
+	return getAvgIntensity() > m.getAvgIntensity();
+}
+
+pixel pixel::operator+(const double& brightness){
+	pixelPrecision R = rgb[RGB_R] + brightness;
+	pixelPrecision G = rgb[RGB_G] + brightness;
+	pixelPrecision B = rgb[RGB_B] + brightness;
+	return pixel(R, G, B);
 }
 
 pixel pixel::operator+(const pixel& neighbor){
@@ -377,6 +404,30 @@ void imageGrid::multiply(mask& _mask) {
 	*this = buf;
 }
 
+void imageGrid::dilate(mask& _mask) {
+	imageGrid buf;
+	buf = *this;
+	//iterate over all pixels
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			buf.img[i][j] = dilatePixel(i, j, _mask);
+		}
+	}
+	*this = buf;
+}
+
+void imageGrid::dilateBinary(mask& _mask) {
+	imageGrid buf;
+	buf = *this;
+	//iterate over all pixels
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			buf.img[i][j] = dilatePixelBinary(i, j, _mask);
+		}
+	}
+	*this = buf;
+}
+
 void imageGrid::sobel() {
 
     double sob_x[] = { -1,  0,  1,
@@ -418,6 +469,41 @@ pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask) {
 			} else {
 				retVal = retVal + (img[y][x] * _mask.maskVals[y_off + off][x_off + off]);
 			}
+		}
+	}
+	return retVal;
+}
+
+pixel imageGrid::dilatePixel(unsigned int y, unsigned int x, mask& _mask) {
+	pixel retVal(0, 0, 0);
+	int off = _mask.w / 2;
+	//iterate over all valid pixels in neighborhood
+	for (int y_off = -off; y_off <= off; y_off++) {
+		int y_prime = y + y_off;
+		for (int x_off = -off; x_off <= off; x_off++) {
+			int x_prime = x + x_off;
+			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
+				pixel tempPix = img[y_prime][x_prime].toGrey() + _mask.maskVals[y_off + off][x_off + off];
+				retVal = ((retVal > tempPix) ? retVal : tempPix);
+			} 
+		}
+	}
+	return retVal;
+}
+
+pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask) {
+	pixel retVal(0, 0, 0);
+	int off = _mask.w / 2;
+	//iterate over all valid pixels in neighborhood
+	for (int y_off = -off; y_off <= off; y_off++) {
+		int y_prime = y + y_off;
+		for (int x_off = -off; x_off <= off; x_off++) {
+			int x_prime = x + x_off;
+			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
+				int enable = ((_mask.maskVals[y_off + off][x_off + off] != 0.0) ? 1 : 0);
+				pixel tempPix = img[y_prime][x_prime].toBinary() * enable;
+				retVal = ((tempPix.getAvgIntensity() > 0) ? tempPix : retVal);
+			} 
 		}
 	}
 	return retVal;

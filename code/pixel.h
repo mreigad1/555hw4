@@ -12,10 +12,15 @@ class pixel {
 		pixel();
 		pixel(int R, int G, int B);
 		pixel operator+(const pixel& neighbor);
+		pixel operator+(const double& brightness);
 		pixel operator-(const pixel& neighbor);
 		pixel operator/(const double& denom);
 		pixel operator*(const double& m);
 		pixel operator*(const pixel& m);
+		bool operator<=(pixel& m);
+		bool operator<(pixel& m);
+		bool operator>=(pixel& m);
+		bool operator>(pixel& m);
 		pixel lux();
 		pixel unlux();
 		pixel root();
@@ -24,6 +29,7 @@ class pixel {
 		pixel RGB_toHSI();
 		pixel HSI_toRGB();
 		pixel toGrey();
+		pixelPrecision getAvgIntensity();
 		pixel toBinary();
 	private:
 		static const int PIX_ARR_SIZE = 3;
@@ -50,8 +56,12 @@ class imageGrid {
 		~imageGrid();
 		imageGrid& operator=(const imageGrid& other);
 		void multiply(mask& _mask);
+		void dilate(mask& _mask);
+		void dilateBinary(mask& _mask);
 		void sobel();
 		pixel multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
+		pixel dilatePixel(unsigned int y, unsigned int x, mask& _mask);
+		pixel dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask);
 		void RGB_toHSI();
 		void HSI_toRGB();
 		void lux();
@@ -74,6 +84,8 @@ class mask {
 		mask();
 		mask(unsigned int width, unsigned int listLength, double* initList, double coefficient = 1.0);
 		friend pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
+		friend pixel imageGrid::dilatePixel(unsigned int y, unsigned int x, mask& _mask);
+		friend pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask);
 		static double LOG(double x, double y, double sigma);
 		static mask makeLOG(int width, double sigma);
 		~mask();
