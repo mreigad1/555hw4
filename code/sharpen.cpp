@@ -58,7 +58,6 @@ int main(int argc, char **argv) {
     unsharp_img.commitImageGrid(&unsharp_image.data[0]);
 
     imageGrid sobel_img(sobel_image.rows, sobel_image.step / 3, &sobel_image.data[0]);
-    //sobel_img.multiply(blur);
     sobel_img.sobel();
     sobel_img.commitImageGrid(&sobel_image.data[0]);
 
@@ -66,12 +65,12 @@ int main(int argc, char **argv) {
     double mix_ratio = -0.05;
 
 	imageGrid unHSI_img(log9_image.rows, log9_image.step / 3, &log9_image.data[0]);
-    unHSI_img.toBinary();
+    unHSI_img.toGrey();
     unHSI_img.commitImageGrid(&log9_image.data[0]);
 
 	imageGrid HSI_img(log11_image.rows, log11_image.step / 3, &log11_image.data[0]);
-    HSI_img.toBinary();
-    HSI_img.dilateBinary(dilate);
+    HSI_img.toGrey();
+    HSI_img.erode(dilate);
     HSI_img.commitImageGrid(&log11_image.data[0]);
 
     unsigned state = 0;

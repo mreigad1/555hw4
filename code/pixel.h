@@ -58,10 +58,14 @@ class imageGrid {
 		void multiply(mask& _mask);
 		void dilate(mask& _mask);
 		void dilateBinary(mask& _mask);
+		void erode(mask& _mask);
+		void erodeBinary(mask& _mask);
 		void sobel();
 		pixel multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
 		pixel dilatePixel(unsigned int y, unsigned int x, mask& _mask);
 		pixel dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask);
+		pixel erodePixel(unsigned int y, unsigned int x, mask& _mask);
+		pixel erodePixelBinary(unsigned int y, unsigned int x, mask& _mask);
 		void RGB_toHSI();
 		void HSI_toRGB();
 		void lux();
@@ -86,6 +90,8 @@ class mask {
 		friend pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
 		friend pixel imageGrid::dilatePixel(unsigned int y, unsigned int x, mask& _mask);
 		friend pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask);
+		friend pixel imageGrid::erodePixel(unsigned int y, unsigned int x, mask& _mask);
+		friend pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask);
 		static double LOG(double x, double y, double sigma);
 		static mask makeLOG(int width, double sigma);
 		~mask();

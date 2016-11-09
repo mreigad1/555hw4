@@ -428,6 +428,30 @@ void imageGrid::dilateBinary(mask& _mask) {
 	*this = buf;
 }
 
+void imageGrid::erode(mask& _mask) {
+	imageGrid buf;
+	buf = *this;
+	//iterate over all pixels
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			buf.img[i][j] = erodePixel(i, j, _mask);
+		}
+	}
+	*this = buf;
+}
+
+void imageGrid::erodeBinary(mask& _mask) {
+	imageGrid buf;
+	buf = *this;
+	//iterate over all pixels
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			buf.img[i][j] = erodePixelBinary(i, j, _mask);
+		}
+	}
+	*this = buf;
+}
+
 void imageGrid::sobel() {
 
     double sob_x[] = { -1,  0,  1,
@@ -503,6 +527,43 @@ pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask) 
 				int enable = ((_mask.maskVals[y_off + off][x_off + off] != 0.0) ? 1 : 0);
 				pixel tempPix = img[y_prime][x_prime].toBinary() * enable;
 				retVal = ((tempPix.getAvgIntensity() > 0) ? tempPix : retVal);
+			} 
+		}
+	}
+	return retVal;
+}
+
+pixel imageGrid::erodePixel(unsigned int y, unsigned int x, mask& _mask) {
+	pixel retVal(MAX_COLOR, MAX_COLOR, MAX_COLOR);
+	int off = _mask.w / 2;
+	//iterate over all valid pixels in neighborhood
+	for (int y_off = -off; y_off <= off; y_off++) {
+		int y_prime = y + y_off;
+		for (int x_off = -off; x_off <= off; x_off++) {
+			int x_prime = x + x_off;
+			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
+				pixel tempPix = img[y_prime][x_prime].toGrey() + (-_mask.maskVals[y_off + off][x_off + off]);
+				retVal = ((retVal < tempPix) ? retVal : tempPix);
+			} 
+		}
+	}
+	return retVal;
+}
+
+pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask) {
+	pixel retVal(MAX_COLOR, MAX_COLOR, MAX_COLOR);
+	int off = _mask.w / 2;
+	//iterate over all valid pixels in neighborhood
+	for (int y_off = -off; y_off <= off; y_off++) {
+		int y_prime = y + y_off;
+		for (int x_off = -off; x_off <= off; x_off++) {
+			int x_prime = x + x_off;
+			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
+				int enable = ((_mask.maskVals[y_off + off][x_off + off] != 0.0) ? 1 : 0);
+				if (enable) {
+					pixel tempPix = img[y_prime][x_prime].toBinary();
+					retVal = ((tempPix.getAvgIntensity() > 0 && retVal.getAvgIntensity() > 0) ? retVal : pixel(0,0,0));
+				}
 			} 
 		}
 	}
