@@ -3,7 +3,17 @@ class pixel_primitive;
 class imageGrid;
 class mask;
 
+struct v2 {
+	unsigned int coord[2];
+	v2(unsigned int y, unsigned int x){
+		coord[0] = y;
+		coord[1] = x;
+	}
+};
+
 typedef double pixelPrecision;
+
+bool operator<(const pixel& p1, const pixel& p2);
 
 //pixel stores high precision pixel data during
 //mathematical operations to avoid overflows
@@ -17,20 +27,24 @@ class pixel {
 		pixel operator/(const double& denom);
 		pixel operator*(const double& m);
 		pixel operator*(const pixel& m);
+		friend bool operator<(const pixel& p1, const pixel& p2);
+		friend bool operator>(const pixel& p1, const pixel& p2);
 		bool operator<=(pixel& m);
 		bool operator<(pixel& m);
 		bool operator>=(pixel& m);
 		bool operator>(pixel& m);
+		bool operator==(pixel& m);
 		pixel lux();
 		pixel unlux();
 		pixel root();
+		pixel negative();
 		pixel mixP(double p);
 		pixel_primitive toPixelPrimitive();
 		pixel RGB_toHSI();
 		pixel HSI_toRGB();
 		pixel toGrey();
 		pixelPrecision getAvgIntensity();
-		pixel toBinary();
+		pixel toBinary(pixelPrecision threshold);
 	private:
 		static const int PIX_ARR_SIZE = 3;
 		pixelPrecision rgb[PIX_ARR_SIZE];
@@ -52,30 +66,45 @@ class pixel_primitive {
 class imageGrid {
 	public:
 		imageGrid();
+		imageGrid(const imageGrid& other);
+		imageGrid(imageGrid& other);
 		imageGrid(unsigned height, unsigned width, unsigned char* old_data);
 		~imageGrid();
 		imageGrid& operator=(const imageGrid& other);
 		void multiply(mask& _mask);
+		void negative();
 		void dilate(mask& _mask);
+		void opening(mask& _mask);
+		void closing(mask& _mask);
+		void morph_gradient(mask& _mask);
 		void dilateBinary(mask& _mask);
 		void erode(mask& _mask);
 		void erodeBinary(mask& _mask);
+		void medianFilter(unsigned int width = 3);
 		void sobel();
+		unsigned int countClusters();
+		void clustering();
+		void clusterPixel(unsigned int y, unsigned int x, unsigned int root);
 		pixel multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
 		pixel dilatePixel(unsigned int y, unsigned int x, mask& _mask);
-		pixel dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask);
+		pixel dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask, pixelPrecision threshold);
 		pixel erodePixel(unsigned int y, unsigned int x, mask& _mask);
-		pixel erodePixelBinary(unsigned int y, unsigned int x, mask& _mask);
+		pixel erodePixelBinary(unsigned int y, unsigned int x, mask& _mask, pixelPrecision threshold);
+		pixel medianFiltered(unsigned int y, unsigned int x, unsigned int width);
 		void RGB_toHSI();
 		void HSI_toRGB();
 		void lux();
 		void unlux();
 		void toGrey();
 		void toBinary();
+		pixelPrecision getAvgIntensity();
+		void subtract(imageGrid& other);
+		void add(imageGrid& other);
 		void mixP(double p);
 		void mixWith(imageGrid& other, double other_ratio = 0.5);
 		void geometricMix(imageGrid& other);
 		void commitImageGrid(unsigned char* old_data);
+		void cutWithImage(imageGrid& logical_mask);
 	private:
 		unsigned int h;
 		unsigned int w;
@@ -89,9 +118,10 @@ class mask {
 		mask(unsigned int width, unsigned int listLength, double* initList, double coefficient = 1.0);
 		friend pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
 		friend pixel imageGrid::dilatePixel(unsigned int y, unsigned int x, mask& _mask);
-		friend pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask);
+		friend pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask, pixelPrecision threshold);
 		friend pixel imageGrid::erodePixel(unsigned int y, unsigned int x, mask& _mask);
-		friend pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask);
+		friend pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask, pixelPrecision threshold);
+		friend pixel imageGrid::medianFiltered(unsigned int y, unsigned int x, unsigned int width);
 		static double LOG(double x, double y, double sigma);
 		static mask makeLOG(int width, double sigma);
 		~mask();

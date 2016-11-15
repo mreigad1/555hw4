@@ -1,0 +1,53 @@
+Matt Reigada
+CS 555
+Homework 4
+
+	Execute program with following command:
+
+		./sharpen <IMAGE_FILENAME> <CLUSTERING_THRESHOLD> <USE_NEGATIVE> <USE_BINARY>
+
+		Required program options must be specified,
+		specifying optional parameters requires all preceding options are specified in order
+
+		Explanations for each option:
+
+			IMAGE_FILENAME			(required)
+				Name of input image file to display
+
+			CLUSTERING_THRESHOLD	(optional in range 0->1, defaults 0.025)
+				Specifies a required percentage for a clustered item to count.
+				Generated data clusters for objects smaller than this percentage
+				of the image will be discarded as noise.  May be tweaked to better
+				focus on larger objects rather than smaller in image.
+
+			USE_NEGATIVE			(optional 0/1 value, defaults 0)
+				Images will process by default with lighter shades considered as objects
+				and darker shades considered background.  To invert this use negative of
+				image for processing by setting to 1.
+
+			USE_BINARY				(optional 0/1 value, defaults 0)
+				Defunct, Flag no longer used
+
+	Runtime Instructions:
+
+		Upon Starting program, all images are generated and number of clusters is counted and
+		displayed in invoking terminal.  Pressing spacebar will cycle the displayed image and
+		the current displayed image will be stated in the terminal.  Exit program by pressing
+		escape key while image panel is has focus.
+
+	Algorithm Description:
+
+		The program will calculate the erosion of the opening of the original image minus its
+		morphological gradient, and then will repeat this process precisely once more on the resultant
+		image.  Subtracting the morphological gradient from the original image will result in an image
+		with embellished borders between objects.  Following this, the erosion of the opening will
+		result in defined but receded object borders.  Performing these operations twice will yield
+		decently receded borders for pessimistic processing.  Lastly, DBScan-like clustering will be
+		performed for organizing object structures and counting them across the image.  During this phase,
+		the tree of each objects connected pixels will be recolored for navigation and displayed.
+		
+		The structuring element for all operations is as depicted below:
+
+			[ 0,  2,  0 ]
+			[ 2,  8,  2 ]
+			[ 0,  2,  0 ]

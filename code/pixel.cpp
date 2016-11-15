@@ -1,6 +1,9 @@
 #include <assert.h>
 #include <math.h>
 #include <iostream>
+#include <vector>
+#include <set>
+#include <algorithm>
 
 #include "pixel.h"
 
@@ -15,6 +18,9 @@
 #define PI (3.141592653589793238462643383279502)
 #define tPI (2 * PI)
 #define EPS (2.71828182846)
+
+extern double img_percent_threshold;
+using namespace std;
 
 enum BGR {
 	RGB_B = 0,
@@ -64,9 +70,17 @@ pixel pixel::toGrey() {
 	return p;
 }
 
-pixel pixel::toBinary() {
+pixel pixel::negative() {
+	pixelPrecision R = ( MAX_COLOR - rgb[RGB_R] );
+	pixelPrecision G = ( MAX_COLOR - rgb[RGB_G] );
+	pixelPrecision B = ( MAX_COLOR - rgb[RGB_B] );
+	pixel p(R, G, B);
+	return p;
+}
+
+pixel pixel::toBinary(pixelPrecision threshold) {
 	pixel p = this->toGrey();
-	pixelPrecision binVal = ((p.rgb[RGB_R] > (MAX_COLOR * (5.0 / 6.0))) ? MAX_COLOR : 0 );
+	pixelPrecision binVal = ((p.getAvgIntensity() >= threshold) ? MAX_COLOR : 0 );
 	pixel retVal(binVal, binVal, binVal);
 	return retVal;
 }
@@ -151,19 +165,55 @@ pixelPrecision pixel::getAvgIntensity() {
 }
 
 bool pixel::operator<=(pixel& m) {
-	return getAvgIntensity() <= m.getAvgIntensity();
+	pixel& p1 = *this;
+	pixel& p2 = m;
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 <= i2;
 }
 
 bool pixel::operator<(pixel& m) {
-	return getAvgIntensity() < m.getAvgIntensity();
+	pixel& p1 = *this;
+	pixel& p2 = m;
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 < i2;
 }
 
 bool pixel::operator>=(pixel& m) {
-	return getAvgIntensity() >= m.getAvgIntensity();
+	pixel& p1 = *this;
+	pixel& p2 = m;
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 >= i2;
 }
 
 bool pixel::operator>(pixel& m) {
-	return getAvgIntensity() > m.getAvgIntensity();
+	pixel& p1 = *this;
+	pixel& p2 = m;
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 > i2;
+}
+
+bool pixel::operator==(pixel& m) {
+	pixel& p1 = *this;
+	pixel& p2 = m;
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 == i2;
+}
+
+bool operator<(const pixel& p1, const pixel& p2) {
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 < i2;
+}
+
+bool operator>(const pixel& p1, const pixel& p2) {
+	unsigned long i1 = ((int(p1.rgb[RGB_R]) << 16) ^ (int(p1.rgb[RGB_G]) << 8) ^ int(p1.rgb[RGB_B]));
+	unsigned long i2 = ((int(p2.rgb[RGB_R]) << 16) ^ (int(p2.rgb[RGB_G]) << 8) ^ int(p2.rgb[RGB_B]));
+	return i1 > i2;
 }
 
 pixel pixel::operator+(const double& brightness){
@@ -345,7 +395,31 @@ imageGrid::imageGrid() {
 	w = 0;
 }
 
-imageGrid::~imageGrid(){
+imageGrid::imageGrid(const imageGrid& other) {
+	h = other.h;
+	w = other.w;
+	img = new pixel*[h];
+	for (unsigned int i = 0; i < h; i++) {
+		img[i] = new pixel[w];
+		for (unsigned int j =0; j < w; j++) {
+			img[i][j] = other.img[i][j];
+		}
+	}
+}
+
+imageGrid::imageGrid(imageGrid& other) {
+	h = other.h;
+	w = other.w;
+	img = new pixel*[h];
+	for (unsigned int i = 0; i < h; i++) {
+		img[i] = new pixel[w];
+		for (unsigned int j =0; j < w; j++) {
+			img[i][j] = other.img[i][j];
+		}
+	}
+}
+
+imageGrid::~imageGrid() {
 	if (NULL != img) {
 		for (unsigned int i = 0; i < h; i++) {
 			if (NULL != img[i]) {
@@ -372,9 +446,11 @@ void imageGrid::HSI_toRGB() {
 }
 
 imageGrid& imageGrid::operator=(const imageGrid& other) {
-	if (NULL != this->img){
+	if (NULL != img){
 		for (unsigned int i = 0; i < h; i++) {
-			delete[] this->img[i];
+			if (NULL != img[i]){
+				delete[] img[i];
+			}
 			img[i] = NULL;
 		}
 		delete[] img;
@@ -405,7 +481,7 @@ void imageGrid::multiply(mask& _mask) {
 }
 
 void imageGrid::dilate(mask& _mask) {
-	imageGrid buf;
+    imageGrid buf;
 	buf = *this;
 	//iterate over all pixels
 	for (unsigned int i = 0; i < h; i++) {
@@ -419,10 +495,12 @@ void imageGrid::dilate(mask& _mask) {
 void imageGrid::dilateBinary(mask& _mask) {
 	imageGrid buf;
 	buf = *this;
+	pixelPrecision threshold = getAvgIntensity();
+
 	//iterate over all pixels
 	for (unsigned int i = 0; i < h; i++) {
 		for (unsigned int j = 0; j < w; j++) {
-			buf.img[i][j] = dilatePixelBinary(i, j, _mask);
+			buf.img[i][j] = dilatePixelBinary(i, j, _mask, threshold);
 		}
 	}
 	*this = buf;
@@ -440,16 +518,46 @@ void imageGrid::erode(mask& _mask) {
 	*this = buf;
 }
 
+void imageGrid::opening(mask& _mask) {
+	erode(_mask);
+	dilate(_mask);
+}
+
+void imageGrid::closing(mask& _mask) {
+	dilate(_mask);
+	erode(_mask);
+}
+
+void imageGrid::morph_gradient(mask& _mask) {
+	imageGrid erosion = *this;
+	imageGrid dilation = *this;
+	erosion.erode(_mask);
+	dilation.dilate(_mask);
+	dilation.subtract(erosion);
+	*this = dilation;
+}
+
 void imageGrid::erodeBinary(mask& _mask) {
 	imageGrid buf;
 	buf = *this;
+	pixelPrecision threshold = getAvgIntensity();
+
 	//iterate over all pixels
 	for (unsigned int i = 0; i < h; i++) {
 		for (unsigned int j = 0; j < w; j++) {
-			buf.img[i][j] = erodePixelBinary(i, j, _mask);
+			buf.img[i][j] = erodePixelBinary(i, j, _mask, threshold);
 		}
 	}
 	*this = buf;
+}
+
+void imageGrid::negative() {
+	//iterate over all pixels
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			img[i][j] = img[i][j].negative();
+		}
+	}
 }
 
 void imageGrid::sobel() {
@@ -476,6 +584,117 @@ void imageGrid::sobel() {
     for (unsigned int i = 0; i < h; i++) {
 		for (unsigned int j = 0; j < w; j++) {
 			img[i][j] = (gx.img[i][j] * gx.img[i][j] + gy.img[i][j] * gy.img[i][j]).root();
+		}
+	}
+}
+
+inline unsigned long rootHash(unsigned int i, unsigned int j, unsigned int h, unsigned int w){
+	return (MAX_COLOR + (i * w) + j + 1);
+}
+
+inline unsigned char colorHash(double root, BGR color) {
+	unsigned int k = root;
+	unsigned char* arr = (unsigned char*)&k;
+	k = (k << 4) | (arr[0] & 0x0F);
+	unsigned char retVal = arr[(int)color];
+	return retVal;
+}
+
+int find_pixel(std::vector<pixel>& roots, pixel& p) {
+	for (int i = 0; i < roots.size(); i++) {
+		if (roots[i] == p) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+unsigned int imageGrid::countClusters() {
+	std::vector<pixel> roots;
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			if (find_pixel(roots, img[i][j]) == -1 && img[i][j].getAvgIntensity() > 0) {
+				roots.push_back(img[i][j]);
+			}
+			std::sort(roots.begin(), roots.end());
+		}
+	}
+	return roots.size();
+}
+
+void imageGrid::clustering() {
+	imageGrid buf;
+	buf = *this;
+	buf.toBinary();
+
+	//iterate over all pixels, and shove large roots into all tree-clusters
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			buf.clusterPixel(i, j, rootHash(i, j, h, w));
+		}
+	}
+
+	//iterate over all pixels, and shove large roots into all tree-clusters
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			double root = buf.img[i][j].getAvgIntensity();
+			if (root > 0) {
+				buf.img[i][j] = pixel(
+					colorHash(root, RGB_R),
+					colorHash(root, RGB_G),
+					colorHash(root, RGB_B)
+				);
+			}
+		}
+	}
+
+	*this = buf;
+}
+
+void imageGrid::clusterPixel(unsigned int y, unsigned int x, unsigned int root) {
+
+	assert(y < h && x < w);
+	assert(root > MAX_COLOR);
+	unsigned int intensity = img[y][x].getAvgIntensity();
+	if (intensity <= 0 || (intensity < root && intensity != MAX_COLOR)) {
+		return;
+	}
+	
+	std::vector<v2> cluster;
+	cluster.push_back(v2(y, x));
+
+	for (unsigned int i = 0; i < cluster.size(); i++) {
+		y = cluster[i].coord[0];
+		x = cluster[i].coord[1];
+		img[y][x] = pixel(root, root, root);
+		unsigned int y_l = ((y == 0)?(0):(y - 1));
+		unsigned int x_l = ((x == 0)?(0):(x - 1));
+		unsigned int y_h = MIN(y + 1, h - 1);
+		unsigned int x_h = MIN(x + 1, w - 1);
+		assert(y_l >= 0 && x_l >= 0 && x_h < w && y_h < h);
+		for (unsigned int n_y = y_l; n_y <= y_h; n_y++) {
+			for (unsigned int n_x = x_l; n_x <= x_h; n_x++) {		//for each neighbor
+				unsigned int I = img[n_y][n_x].getAvgIntensity();	//downcast intensity
+				if (n_x == x || n_y == y) {
+					if (I > root || I == MAX_COLOR) {				//if neighbor larger or just alive
+						cluster.push_back(v2(n_y, n_x));
+						img[n_y][n_x] = pixel(root, root, root);
+					}
+				}
+			}
+		}
+	}
+
+	//objects must make up at least X% of image or be discarded (noise)
+	double x_threshold = sqrt(img_percent_threshold);
+	double y_threshold = x_threshold * h;
+	x_threshold *= w;
+
+	if (cluster.size() < (x_threshold * y_threshold)) {
+		for (unsigned int i = 0; i < cluster.size(); i++) {
+			y = cluster[i].coord[0];
+			x = cluster[i].coord[1];
+			img[y][x] = pixel(0, 0, 0);
 		}
 	}
 }
@@ -515,7 +734,7 @@ pixel imageGrid::dilatePixel(unsigned int y, unsigned int x, mask& _mask) {
 	return retVal;
 }
 
-pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask) {
+pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask, pixelPrecision threshold) {
 	pixel retVal(0, 0, 0);
 	int off = _mask.w / 2;
 	//iterate over all valid pixels in neighborhood
@@ -525,7 +744,7 @@ pixel imageGrid::dilatePixelBinary(unsigned int y, unsigned int x, mask& _mask) 
 			int x_prime = x + x_off;
 			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
 				int enable = ((_mask.maskVals[y_off + off][x_off + off] != 0.0) ? 1 : 0);
-				pixel tempPix = img[y_prime][x_prime].toBinary() * enable;
+				pixel tempPix = img[y_prime][x_prime].toBinary(threshold) * enable;
 				retVal = ((tempPix.getAvgIntensity() > 0) ? tempPix : retVal);
 			} 
 		}
@@ -550,7 +769,7 @@ pixel imageGrid::erodePixel(unsigned int y, unsigned int x, mask& _mask) {
 	return retVal;
 }
 
-pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask) {
+pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask, pixelPrecision threshold) {
 	pixel retVal(MAX_COLOR, MAX_COLOR, MAX_COLOR);
 	int off = _mask.w / 2;
 	//iterate over all valid pixels in neighborhood
@@ -561,12 +780,56 @@ pixel imageGrid::erodePixelBinary(unsigned int y, unsigned int x, mask& _mask) {
 			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
 				int enable = ((_mask.maskVals[y_off + off][x_off + off] != 0.0) ? 1 : 0);
 				if (enable) {
-					pixel tempPix = img[y_prime][x_prime].toBinary();
+					pixel tempPix = img[y_prime][x_prime].toBinary(threshold);
 					retVal = ((tempPix.getAvgIntensity() > 0 && retVal.getAvgIntensity() > 0) ? retVal : pixel(0,0,0));
 				}
 			} 
 		}
 	}
+	return retVal;
+}
+
+void imageGrid::medianFilter(unsigned int width) {
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			img[i][j] = medianFiltered(i, j, width);
+		}
+	}
+}
+
+void imageGrid::cutWithImage(imageGrid& logical_mask) {
+	assert(h == logical_mask.h && w == logical_mask.w);
+	for (int i = 0; i < h; i++) {
+		for (int j = 0; j < w; j++) {
+			if (logical_mask.img[i][j].getAvgIntensity() > 0) {
+
+			} else {
+				img[i][j] = pixel(0,0,0);
+			}
+		}
+	}
+}
+
+pixel imageGrid::medianFiltered(unsigned int y, unsigned int x, unsigned int width) {
+	pixel retVal(0, 0, 0);
+	int off = width / 2;
+
+	std::vector<pixel> neighborhood;
+
+	//iterate over all valid pixels in neighborhood
+	for (int y_off = -off; y_off <= off; y_off++) {
+		int y_prime = y + y_off;
+		for (int x_off = -off; x_off <= off; x_off++) {
+			int x_prime = x + x_off;
+			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
+				neighborhood.push_back(img[y_prime][x_prime]);
+			}
+		}
+	}
+
+	std::sort(neighborhood.begin(), neighborhood.end());
+	retVal = neighborhood[neighborhood.size() / 2];
+
 	return retVal;
 }
 
@@ -625,11 +888,41 @@ void imageGrid::toGrey() {
 }
 
 void imageGrid::toBinary() {
+	pixelPrecision threshold = getAvgIntensity();
 	for (unsigned int i = 0; i < h; i++){
 		for (unsigned int j = 0; j < w; j++) {
-			img[i][j] = img[i][j].toBinary();
+			img[i][j] = img[i][j].toBinary(threshold);
 		}
 	}
+}
+
+void imageGrid::subtract(imageGrid& other) {
+	assert(h == other.h && w == other.w);
+	for (unsigned int i = 0; i < h; i++){
+		for (unsigned int j = 0; j < w; j++) {
+			img[i][j] = MAX(img[i][j] - other.img[i][j], pixel(0,0,0));
+		}
+	}
+}
+
+void imageGrid::add(imageGrid& other) {
+	assert(h == other.h && w == other.w);
+	for (unsigned int i = 0; i < h; i++){
+		for (unsigned int j = 0; j < w; j++) {
+			img[i][j] = img[i][j] - other.img[i][j];
+		}
+	}
+}
+
+pixelPrecision imageGrid::getAvgIntensity() {
+	pixelPrecision threshold = 0;
+	for (unsigned int i = 0; i < h; i++){
+		for (unsigned int j = 0; j < w; j++) {
+			threshold += img[i][j].getAvgIntensity();
+		}
+	}
+	threshold /= (h * w);
+	return threshold;
 }
 
 void imageGrid::commitImageGrid(unsigned char * old_data) {
