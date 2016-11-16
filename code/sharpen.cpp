@@ -13,8 +13,8 @@ using namespace cv;
 
 std::string inputName = "";
 double img_percent_threshold = 0.025;
-bool morph_gradient = false;
-bool opening_gradient = false;
+int morph_gradient = 0;
+int opening_gradient = 0;
 bool invertColors = false;
 int num_iterations = 1;
 
@@ -52,17 +52,13 @@ img_with_count count_objects(imageGrid& img) {
         imageGrid closing = img;
         imageGrid opening = img;
 
-        if (morph_gradient) {
+        for (int j = 0; j < morph_gradient; j++) {
             gradient_img = img;
             gradient_img.morph_gradient(morph); //get morph gradient
             img.subtract(gradient_img);         //remove morph gradient
         }
 
-        if (opening_gradient) {
-            closing.closing(morph);
-            opening.opening(morph);
-            closing.subtract(opening);
-            img.subtract(closing);
+        for (int j = 0; j < opening_gradient; j++) {
 
             img.opening(morph);
             img.erode(morph);                   //erosion of opening
@@ -84,12 +80,12 @@ int main(int argc, char **argv) {
 
     switch (argc){
         default:
+        case 7:
+            num_iterations = atoi(argv[6]);
         case 6:
-            assert(atoi(argv[5]) == 1 || atoi(argv[5]) == 0);
-            opening_gradient = (atoi(argv[5]) == 1);
+            opening_gradient = atoi(argv[5]);
         case 5:
-            assert(atoi(argv[4]) == 1 || atoi(argv[4]) == 0);
-            morph_gradient = (atoi(argv[4]) == 1);
+            morph_gradient = atoi(argv[4]);
         case 4:
             assert(atoi(argv[3]) == 1 || atoi(argv[3]) == 0);
             invertColors = (atoi(argv[3]) == 1);
@@ -140,10 +136,11 @@ int main(int argc, char **argv) {
     greyscale_img.toGrey();
     binary_img.toBinary();    
 
-    std::cout << "Processing with   Clustering Threshold:\t" << std::fixed << std::setprecision(6) << (img_percent_threshold * 100) << std::endl;
-    std::cout << "Processing with         Image Negative:\t" << toString(invertColors) << std::endl;
-    std::cout << "Processing with Morphological Gradient:\t" << toString(morph_gradient) << std::endl;
-    std::cout << "Processing with       Opening Gradient:\t" << toString(opening_gradient) << std::endl;
+    std::cout << "Processing with  Clustering Threshold:\t" << std::fixed << std::setprecision(3) << (img_percent_threshold * 100) << "%" << std::endl;
+    std::cout << "Processing with        Image Negative:\t" << toString(invertColors) << std::endl;
+    std::cout << "Processing with           N_GRADIENTS:\t" << morph_gradient << std::endl;
+    std::cout << "Processing with         M_OC_EROSIONS:\t" << opening_gradient << std::endl;
+    std::cout << "Processing with          K_ITERATIONS:\t" << num_iterations << std::endl;
     
     img_with_count processed_img = count_objects(preclust_img);
     clust_img = processed_img.img;

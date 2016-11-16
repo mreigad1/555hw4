@@ -666,6 +666,7 @@ void imageGrid::clusterPixel(unsigned int y, unsigned int x, unsigned int root) 
 	for (unsigned int i = 0; i < cluster.size(); i++) {
 		y = cluster[i].coord[0];
 		x = cluster[i].coord[1];
+		int my_I = img[y][x].getAvgIntensity();
 		img[y][x] = pixel(root, root, root);
 		unsigned int y_l = ((y == 0)?(0):(y - 1));
 		unsigned int x_l = ((x == 0)?(0):(x - 1));
@@ -674,8 +675,9 @@ void imageGrid::clusterPixel(unsigned int y, unsigned int x, unsigned int root) 
 		assert(y_l >= 0 && x_l >= 0 && x_h < w && y_h < h);
 		for (unsigned int n_y = y_l; n_y <= y_h; n_y++) {
 			for (unsigned int n_x = x_l; n_x <= x_h; n_x++) {		//for each neighbor
-				unsigned int I = img[n_y][n_x].getAvgIntensity();	//downcast intensity
 				if (n_x == x || n_y == y) {
+					int I = img[n_y][n_x].getAvgIntensity();	//downcast intensity
+					unsigned int I_delta = MAX(I, my_I) - MIN(I, my_I);
 					if (I > root || I == MAX_COLOR) {				//if neighbor larger or just alive
 						cluster.push_back(v2(n_y, n_x));
 						img[n_y][n_x] = pixel(root, root, root);
@@ -686,11 +688,7 @@ void imageGrid::clusterPixel(unsigned int y, unsigned int x, unsigned int root) 
 	}
 
 	//objects must make up at least X% of image or be discarded (noise)
-	double x_threshold = sqrt(img_percent_threshold);
-	double y_threshold = x_threshold * h;
-	x_threshold *= w;
-
-	if (cluster.size() < (x_threshold * y_threshold)) {
+	if (cluster.size() < (h * w * img_percent_threshold)) {
 		for (unsigned int i = 0; i < cluster.size(); i++) {
 			y = cluster[i].coord[0];
 			x = cluster[i].coord[1];

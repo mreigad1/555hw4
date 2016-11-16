@@ -2,9 +2,12 @@ Matt Reigada
 CS 555
 Homework 4
 
+	To execute provided input with pigs, please execute "./pigtest.sh"
+	To execute provided input with cells, please execute "./celltest.sh"
+
 	Execute program with following command:
 
-		./sharpen <IMAGE_FILENAME> <CLUSTERING_THRESHOLD> <USE_NEGATIVE> <USE_BINARY>
+		./sharpen <IMAGE_FILENAME> <CLUSTERING_THRESHOLD> <USE_NEGATIVE> <N_GRADIENTS> <M_OC_GRADIENTS> <K_ITERATIONS>
 
 		Required program options must be specified,
 		specifying optional parameters requires all preceding options are specified in order
@@ -25,8 +28,18 @@ Homework 4
 				and darker shades considered background.  To invert this use negative of
 				image for processing by setting to 1.
 
-			USE_BINARY				(optional 0/1 value, defaults 0)
-				Defunct, Flag no longer used
+			N_GRADIENTS				(optional 0 or larger, defaults 0)
+				Image processing loop will calculate gradient N times,
+				subtracting the current morph gradient from the image.
+
+			M_OP_ERODES			(optional 0 or larger, defaults 0)
+				Image processing loop will calculate the erosion of the opening of the image,
+				Program will perform this M times.
+
+			K_ITERATIONS			(optional 0 or larger, defaults 1)
+				Program will calulate N morph gradient removals and M eroded openings each
+				time removing the gradient from the image, these N + M transactions will
+				be performed K times. 
 
 	Runtime Instructions:
 
@@ -38,13 +51,16 @@ Homework 4
 	Algorithm Description:
 
 		The program will calculate the erosion of the opening of the original image minus its
-		morphological gradient, and then will repeat this process precisely once more on the resultant
-		image.  Subtracting the morphological gradient from the original image will result in an image
+		morphological gradient, and then will repeat this process a user specified number of times.
+
+		Subtracting the morphological gradient from the original image will result in an image
 		with embellished borders between objects.  Following this, the erosion of the opening will
-		result in defined but receded object borders.  Performing these operations twice will yield
-		decently receded borders for pessimistic processing.  Lastly, DBScan-like clustering will be
-		performed for organizing object structures and counting them across the image.  During this phase,
-		the tree of each objects connected pixels will be recolored for navigation and displayed.
+		result in defined but receded object borders.  Repeating this a number of times will better
+		distinguish objects, but will break down objects if done too much.
+
+		Lastly, a DBScan-like clustering algorithm will be performed for organizing object structures
+		and counting them across the image.  During this phase, the tree of each object's connected
+		pixels will be recolored for navigation and displayed.
 		
 		The structuring element for all operations is as depicted below:
 
